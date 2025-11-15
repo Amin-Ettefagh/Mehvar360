@@ -384,9 +384,6 @@
             <input id="authPass" placeholder="Password" type="password" class="rounded-lg px-3 py-2" />
             <button id="authBtn" class="btn btn-primary w-full rounded-xl">Enter</button>
           </div>
-          <div class="text-slate-400 text-xs mt-3">
-            Allowed users: Admin/Admin • admin/admin • Rousta/123456789 • Vakili/987654321
-          </div>
         </div>
       </div>
 
@@ -1570,51 +1567,60 @@
         resizeCanvas();
         draw();
       }
+      
+    document.getElementById('importShapeBtn').addEventListener('click', async () => {
+    if (!signedIn) {
+        toast('Please sign in first', 'err');
+        return;
+    }
 
-      // Shape Import / Export
-      document.getElementById('importShapeBtn').addEventListener('click', async () => {
-        if (!signedIn) {
-          toast('Please sign in first', 'err');
-          return;
-        }
-        const f = await pickJSON();
-        if (!f) return;
+    const files = await pickJSON();
+    if (!files || files.length === 0) return;
+
+    for (const f of files) {
         try {
-          const t = await f.text();
-          const j = JSON.parse(t);
-          if (j.w && j.h && j.cx !== undefined) {
+        const t = await f.text();
+        const j = JSON.parse(t);
+
+        if (j.w && j.h && j.cx !== undefined) {
+
             const sh = {
-              id: Date.now(),
-              type: j.w === j.h ? 'square' : 'rect',
-              w: Number(j.w),
-              h: Number(j.h),
-              cx: Number(j.cx),
-              cy: Number(j.cy),
-              angle: Number(j.angle || 0),
-              fill: j.fill || 'transparent',
-              stroke: j.stroke || '#ffffff',
-              label: (j.label || '').toUpperCase().slice(0, 3),
-              selected: false
+            id: Date.now() + Math.random(),
+            type: j.w === j.h ? 'square' : 'rect',
+            w: Number(j.w),
+            h: Number(j.h),
+            cx: Number(j.cx),
+            cy: Number(j.cy),
+            angle: Number(j.angle || 0),
+            fill: j.fill || 'transparent',
+            stroke: j.stroke || '#ffffff',
+            label: (j.label || '').toUpperCase().slice(0, 3),
+            selected: false
             };
+
             if (!tryPlaceInside(sh)) {
-              toast('Imported shape cannot fit inside boundary', 'err');
-              return;
+            toast('Shape from ' + f.name + ' cannot fit inside boundary', 'err');
+            continue;
             }
+
             if (magnetive) {
-              const snapped = snapAgainstOthers(sh);
-              sh.cx = snapped.cx;
-              sh.cy = snapped.cy;
+            const snapped = snapAgainstOthers(sh);
+            sh.cx = snapped.cx;
+            sh.cy = snapped.cy;
             }
+
             shapes.push(sh);
-            draw();
-            toast('Shape imported');
-          } else {
-            toast('Invalid shape file', 'err');
-          }
-        } catch (e) {
-          toast('Invalid file', 'err');
         }
-      });
+
+        } catch (e) {
+        toast('Invalid file: ' + f.name, 'err');
+        }
+    }
+
+    draw();
+    toast(files.length + ' shapes imported');
+    });
+
 
       document.getElementById('exportShapeBtn').addEventListener('click', () => {
         if (!signedIn) {
@@ -1646,17 +1652,19 @@
         URL.revokeObjectURL(a.href);
       });
 
-      function pickJSON() {
-        return new Promise(res => {
-          const inp = document.createElement('input');
-          inp.type = 'file';
-          inp.accept = '.json,application/json';
-          inp.onchange = e => {
-            res(e.target.files[0]);
-          };
-          inp.click();
-        });
-      }
+    function pickJSON() {
+    return new Promise(res => {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = '.json,application/json';
+        inp.multiple = true;    
+        inp.onchange = e => {
+        res([...e.target.files]);  
+        };
+        inp.click();
+    });
+    }
+
 
       resizeCanvas();
     </script>
